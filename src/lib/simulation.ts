@@ -15,7 +15,16 @@ interface SimulationState {
   machines: Machine[]
   time: number
   isRunning: boolean
+  completedJobs: Job[]
+  totalJobsProcessed: number
+  totalServiceTime: number
+  totalQueueTime: number
   
+  // Derived State (Getters)
+  runningJobs: number
+  avgServiceTime: number
+  avgQueueTime: number
+
   // Actions
   start: () => void
   stop: () => void
@@ -42,6 +51,23 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   machines: [],
   time: 0,
   isRunning: false,
+  completedJobs: [],
+  totalJobsProcessed: 0,
+  totalServiceTime: 0,
+  totalQueueTime: 0,
+
+  // Derived State (Getters)
+  get runningJobs() {
+    return get().machines.filter(machine => machine.job !== null).length;
+  },
+  get avgServiceTime() {
+    const { totalServiceTime, totalJobsProcessed } = get();
+    return totalJobsProcessed > 0 ? totalServiceTime / totalJobsProcessed : 0;
+  },
+  get avgQueueTime() {
+    const { totalQueueTime, totalJobsProcessed } = get();
+    return totalJobsProcessed > 0 ? totalQueueTime / totalJobsProcessed : 0;
+  },
 
   // Actions
   start: () => set({ isRunning: true }),
@@ -52,7 +78,16 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       machines.push({ id: i, job: null, finishTime: null });
     }
     nextJobId = 0;
-    set({ jobs: [], machines, time: 0, isRunning: false });
+    set({
+      jobs: [],
+      machines,
+      time: 0,
+      isRunning: false,
+      completedJobs: [],
+      totalJobsProcessed: 0,
+      totalServiceTime: 0,
+      totalQueueTime: 0,
+    });
   },
   tick: () => {
     if (!get().isRunning) return;
@@ -60,12 +95,26 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     const now = get().time;
     const state = get();
 
+    let newCompletedJobs = [...state.completedJobs];
+    let newTotalJobsProcessed = state.totalJobsProcessed;
+    let newTotalServiceTime = state.totalServiceTime;
+    let newTotalQueueTime = state.totalQueueTime;
+
     // Advance time
     set({ time: now + 1 });
 
     // Check for finished jobs
     let newMachines = state.machines.map(machine => {
       if (machine.job && machine.finishTime && now >= machine.finishTime) {
+        const finishedJob = machine.job;
+        const serviceTime = finishedJob.processingTime;
+        const queueTime = (machine.finishTime - finishedJob.startTime) - serviceTime;
+
+        newCompletedJobs.push(finishedJob);
+        newTotalJobsProcessed++;
+        newTotalServiceTime += serviceTime;
+        newTotalQueueTime += queueTime;
+
         return { ...machine, job: null, finishTime: null };
       }
       return machine;
@@ -90,6 +139,13 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       });
     }
 
-    set({ jobs: newJobs, machines: newMachines });
+    set({
+      jobs: newJobs,
+      machines: newMachines,
+      completedJobs: newCompletedJobs,
+      totalJobsProcessed: newTotalJobsProcessed,
+      totalServiceTime: newTotalServiceTime,
+      totalQueueTime: newTotalQueueTime,
+    });
   },
 }));

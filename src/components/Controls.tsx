@@ -1,6 +1,5 @@
 import { useSimulationStore } from "@/lib/simulation"
-import { Slider } from "@/components/ui/slider"
-import { Button } from "@/components/ui/button"
+import { Slider, Button, Typography, Box } from "@mui/material"
 
 export function Controls() {
   const {
@@ -17,54 +16,46 @@ export function Controls() {
   } = useSimulationStore()
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">Controls</h2>
-      <div className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium mb-2">Job Arrival Rate (jobs/sec)</label>
-          <div className="flex items-center space-x-4">
-            <Slider
-              min={1}
-              max={100}
-              step={1}
-              value={[jobArrivalRate]}
-              onValueChange={(value) => setJobArrivalRate(value[0])}
-            />
-            <span className="font-bold w-12 text-center">{jobArrivalRate}</span>
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Average Job Time (sec)</label>
-          <div className="flex items-center space-x-4">
-            <Slider
-              min={1}
-              max={100}
-              step={1}
-              value={[avgJobTime]}
-              onValueChange={(value) => setAvgJobTime(value[0])}
-            />
-            <span className="font-bold w-12 text-center">{avgJobTime}</span>
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Number of Machines</label>
-          <div className="flex items-center space-x-4">
-            <Slider
-              min={1}
-              max={50}
-              step={1}
-              value={[numMachines]}
-              onValueChange={(value) => setNumMachines(value[0])}
-            />
-            <span className="font-bold w-12 text-center">{numMachines}</span>
-          </div>
-        </div>
-        <div className="flex space-x-4">
-          <Button onClick={start} disabled={isRunning}>Start</Button>
-          <Button onClick={stop} disabled={!isRunning}>Stop</Button>
-          <Button onClick={reset} variant="destructive">Reset</Button>
-        </div>
-      </div>
-    </div>
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h5" component="h2" gutterBottom>Controls</Typography>
+      <Box sx={{ mt: 3 }}>
+        <Typography gutterBottom>Job Arrival Rate (jobs/sec): {jobArrivalRate}</Typography>
+        <Slider
+          value={jobArrivalRate}
+          onChange={(_, value) => setJobArrivalRate(value as number)}
+          min={1}
+          max={100}
+          step={1}
+          valueLabelDisplay="auto"
+        />
+      </Box>
+      <Box sx={{ mt: 3 }}>
+        <Typography gutterBottom>Average Job Time (sec): {avgJobTime}</Typography>
+        <Slider
+          value={avgJobTime}
+          onChange={(_, value) => setAvgJobTime(value as number)}
+          min={1}
+          max={100}
+          step={1}
+          valueLabelDisplay="auto"
+        />
+      </Box>
+      <Box sx={{ mt: 3 }}>
+        <Typography gutterBottom>Number of Machines: {numMachines}</Typography>
+        <Slider
+          value={numMachines}
+          onChange={(_, value) => setNumMachines(value as number)}
+          min={1}
+          max={50}
+          step={1}
+          valueLabelDisplay="auto"
+        />
+      </Box>
+      <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>
+        <Button variant="contained" onClick={start} disabled={isRunning}>Start</Button>
+        <Button variant="outlined" onClick={stop} disabled={!isRunning}>Stop</Button>
+        <Button variant="contained" color="error" onClick={reset}>Reset</Button>
+      </Box>
+    </Box>
   )
 }
