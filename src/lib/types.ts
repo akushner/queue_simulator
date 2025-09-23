@@ -2,6 +2,7 @@ export interface Job {
   id: number;
   startTime: number;
   processingTime: number;
+  startedProcessingTime: number | null;
 }
 
 export interface Machine {

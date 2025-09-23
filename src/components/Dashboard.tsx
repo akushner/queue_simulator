@@ -3,14 +3,12 @@ import { Box, Typography, Paper } from '@mui/material';
 import { useSimulationStore } from '@/lib/simulation';
 
 export function Dashboard() {
-  const {
-    time,
-    jobs,
-    runningJobs,
-    avgServiceTime,
-    avgQueueTime,
-    totalJobsProcessed,
-  } = useSimulationStore();
+  const time = useSimulationStore((state) => state.time);
+  const jobs = useSimulationStore((state) => state.jobs);
+  const runningJobs = useSimulationStore((state) => state.runningJobs);
+  const avgServiceTime = useSimulationStore((state) => state.avgServiceTime);
+  const avgQueueTime = useSimulationStore((state) => state.avgQueueTime);
+  const totalJobsProcessed = useSimulationStore((state) => state.totalJobsProcessed);
 
   return (
     <Paper elevation={3} sx={{ p: 2, mt: 2 }}>
