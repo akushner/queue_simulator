@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { Text } from "@react-three/drei"
 import { useSimulationStore } from "@/lib/simulation"

@@ -16,11 +16,10 @@ interface SimulationState {
   time: number
   isRunning: boolean
   completedJobs: Job[]
-  totalJobsProcessed: number
-  totalServiceTime: number
   totalQueueTime: number
   maxQueueDisplaySize: number
   queueSizeHistory: number[]
+  totalJobsCompleted: number
   
   // Derived State (Getters)
   runningJobs: number
@@ -58,7 +57,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   time: 0,
   isRunning: false,
   completedJobs: [],
-  totalJobsProcessed: 0,
+  totalJobsCompleted: 0,
   totalServiceTime: 0,
   totalQueueTime: 0,
   maxQueueDisplaySize: INITIAL_MAX_QUEUE_DISPLAY_SIZE,
@@ -69,12 +68,12 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     return get().machines.filter(machine => machine.job !== null).length;
   },
   get avgServiceTime() {
-    const { totalServiceTime, totalJobsProcessed } = get();
-    return totalJobsProcessed > 0 ? totalServiceTime / totalJobsProcessed : 0;
+    const { totalServiceTime, totalJobsCompleted } = get();
+    return totalJobsCompleted > 0 ? totalServiceTime / totalJobsCompleted : 0;
   },
   get avgQueueTime() {
-    const { totalQueueTime, totalJobsProcessed } = get();
-    return totalJobsProcessed > 0 ? totalQueueTime / totalJobsProcessed : 0;
+    const { totalQueueTime, totalJobsCompleted } = get();
+    return totalJobsCompleted > 0 ? totalQueueTime / totalJobsCompleted : 0;
   },
   get estimatedQueueEmptyTime() {
     const state = get();
@@ -109,7 +108,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       time: 0,
       isRunning: false,
       completedJobs: [],
-      totalJobsProcessed: 0,
+      totalJobsCompleted: 0,
       totalServiceTime: 0,
       totalQueueTime: 0,
       maxQueueDisplaySize: INITIAL_MAX_QUEUE_DISPLAY_SIZE,
@@ -143,63 +142,73 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   tick: () => {
     if (!get().isRunning) return;
 
-    const now = get().time;
     const state = get();
+    const oldNow = state.time;
+    const newNow = oldNow + 1;
+
+    let currentJobs = [...state.jobs];
+    let currentMachines = [...state.machines];
 
     let newCompletedJobs = [...state.completedJobs];
-    let newTotalJobsProcessed = state.totalJobsProcessed;
+    let newTotalJobsCompleted = state.totalJobsCompleted;
     let newTotalServiceTime = state.totalServiceTime;
     let newTotalQueueTime = state.totalQueueTime;
 
-    // Advance time
-    set({ time: now + 1 });
+    console.log(`--- Tick ${newNow} ---`);
+    console.log(`Initial currentJobs.length: ${currentJobs.length}`);
+    console.log(`Initial currentMachines (jobs): ${currentMachines.map(m => m.job ? m.job.id : 'null')}`);
 
     // Check for finished jobs
-    let newMachines = state.machines.map(machine => {
-      if (machine.job && machine.finishTime && now >= machine.finishTime) {
+    currentMachines = currentMachines.map(machine => {
+      if (machine.job && machine.finishTime && newNow >= machine.finishTime) { // Use newNow
         const finishedJob = machine.job;
         const serviceTime = finishedJob.processingTime;
         const queueTime = (finishedJob.startedProcessingTime !== null) ? (finishedJob.startedProcessingTime - finishedJob.startTime) : 0;
 
         newCompletedJobs.push(finishedJob);
-        newTotalJobsProcessed++;
+        newTotalJobsCompleted++;
         newTotalServiceTime += serviceTime;
         newTotalQueueTime += queueTime;
 
-        return { ...machine, job: null, finishTime: null };
+        return { ...machine, job: null, finishTime: null }; // Machine becomes free
       }
       return machine;
     });
+    console.log(`currentMachines after completion check (jobs): ${currentMachines.map(m => m.job ? m.job.id : 'null')}`);
 
     // Assign jobs to free machines
-    let newJobs = [...state.jobs];
-    newMachines = newMachines.map(machine => {
-        if (!machine.job && newJobs.length > 0) {
-            const job = newJobs.shift()!;
-            const jobWithStartTime = { ...job, startedProcessingTime: now };
-            return { ...machine, job: jobWithStartTime, finishTime: now + job.processingTime };
+    console.log(`currentJobs.length before assignment: ${currentJobs.length}`);
+    currentMachines = currentMachines.map(machine => {
+        if (!machine.job && currentJobs.length > 0) {
+            const job = currentJobs.shift()!; // Take job from mutable queue
+            const jobWithStartTime = { ...job, startedProcessingTime: newNow }; // Use newNow
+            console.log(`Assigning Job ${job.id} to machine ${machine.id}.`);
+            return { ...machine, job: jobWithStartTime, finishTime: newNow + Math.ceil(job.processingTime) }; // Use newNow
         }
         return machine;
     });
+    console.log(`currentMachines after assignment (jobs): ${currentMachines.map(m => m.job ? m.job.id : 'null')}`);
 
     // Add new jobs
-    if (Math.random() < state.jobArrivalRate / 60) { // Assuming 60 ticks per second
-      newJobs.push({
+    if (Math.random() < state.jobArrivalRate / 60) {
+      currentJobs.push({ // Add to mutable queue
         id: nextJobId++,
-        startTime: now,
-        processingTime: Math.random() * state.avgJobTime * 2, // Simple uniform distribution
+        startTime: newNow,
+        processingTime: Math.random() * state.avgJobTime * 2,
         startedProcessingTime: null,
       });
+      console.log(`New job added. currentJobs.length: ${currentJobs.length}`);
     }
 
     set({
-      jobs: newJobs,
-      machines: newMachines,
+      time: newNow,
+      jobs: currentJobs,
+      machines: currentMachines,
       completedJobs: newCompletedJobs,
-      totalJobsProcessed: newTotalJobsProcessed,
+      totalJobsCompleted: newTotalJobsCompleted,
       totalServiceTime: newTotalServiceTime,
       totalQueueTime: newTotalQueueTime,
-      queueSizeHistory: [...state.queueSizeHistory.slice(-(QUEUE_HISTORY_LENGTH - 1)), newJobs.length],
+      queueSizeHistory: [...state.queueSizeHistory.slice(-(QUEUE_HISTORY_LENGTH - 1)), currentJobs.length],
     });
 
     get().updateMaxQueueDisplaySize();
