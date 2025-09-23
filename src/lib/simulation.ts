@@ -17,14 +17,15 @@ interface SimulationState {
   isRunning: boolean
   completedJobs: Job[]
   totalQueueTime: number
+  totalServiceTime: number
   maxQueueDisplaySize: number
   queueSizeHistory: number[]
   totalJobsCompleted: number
   
   // Derived State (Getters)
   runningJobs: number
-  avgServiceTime: number
-  avgQueueTime: number
+  avgServiceTime: () => number
+  avgQueueTime: () => number
   estimatedQueueEmptyTime: number
 
   // Actions
@@ -41,7 +42,7 @@ const QUEUE_HISTORY_LENGTH = 10;
 
 export const useSimulationStore = create<SimulationState>((set, get) => ({
   // Parameters
-  jobArrivalRate: 5,
+  jobArrivalRate: 30, // Increased for better job generation
   setJobArrivalRate: (rate) => set({ jobArrivalRate: rate }),
   avgJobTime: 10,
   setAvgJobTime: (time) => set({ avgJobTime: time }),
@@ -67,11 +68,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   get runningJobs() {
     return get().machines.filter(machine => machine.job !== null).length;
   },
-  get avgServiceTime() {
+  avgServiceTime: () => {
     const { totalServiceTime, totalJobsCompleted } = get();
     return totalJobsCompleted > 0 ? totalServiceTime / totalJobsCompleted : 0;
   },
-  get avgQueueTime() {
+  avgQueueTime: () => {
     const { totalQueueTime, totalJobsCompleted } = get();
     return totalJobsCompleted > 0 ? totalQueueTime / totalJobsCompleted : 0;
   },
@@ -146,8 +147,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     const oldNow = state.time;
     const newNow = oldNow + 1;
 
-    let currentJobs = [...state.jobs];
-    let currentMachines = [...state.machines];
+    let currentJobs = [...state.jobs]; // Mutable copy of jobs in queue
+    let currentMachines = [...state.machines]; // Mutable copy of machines
 
     let newCompletedJobs = [...state.completedJobs];
     let newTotalJobsCompleted = state.totalJobsCompleted;
@@ -165,10 +166,14 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         const serviceTime = finishedJob.processingTime;
         const queueTime = (finishedJob.startedProcessingTime !== null) ? (finishedJob.startedProcessingTime - finishedJob.startTime) : 0;
 
+        console.log(`Finished Job ${finishedJob.id}, serviceTime: ${serviceTime}, queueTime: ${queueTime}`);
+
         newCompletedJobs.push(finishedJob);
         newTotalJobsCompleted++;
         newTotalServiceTime += serviceTime;
         newTotalQueueTime += queueTime;
+
+        console.log(`newTotalServiceTime: ${newTotalServiceTime}, newTotalQueueTime: ${newTotalQueueTime}`);
 
         return { ...machine, job: null, finishTime: null }; // Machine becomes free
       }
