@@ -9,4 +9,5 @@ export interface Machine {
   id: number;
   job: Job | null;
   finishTime: number | null;
+  status: 'active' | 'removing';
 }

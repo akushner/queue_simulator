@@ -48,8 +48,26 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   setAvgJobTime: (time) => set({ avgJobTime: time }),
   numMachines: 5,
   setNumMachines: (num) => {
-    set({ numMachines: num });
-    get().reset();
+    const currentMachines = get().machines;
+    const currentNumMachines = currentMachines.length;
+
+    if (num > currentNumMachines) {
+      // Add machines
+      const newMachines = [...currentMachines];
+      for (let i = currentNumMachines; i < num; i++) {
+        newMachines.push({ id: i, job: null, finishTime: null, status: 'active' });
+      }
+      set({ machines: newMachines, numMachines: num });
+    } else if (num < currentNumMachines) {
+      // Mark machines for removal
+      const newMachines = currentMachines.map((machine, i) => {
+        if (i >= num) {
+          return { ...machine, status: 'removing' };
+        }
+        return machine;
+      });
+      set({ machines: newMachines, numMachines: num });
+    }
   },
 
   // State
@@ -101,7 +119,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   reset: () => {
     const machines: Machine[] = [];
     for (let i = 0; i < get().numMachines; i++) {
-      machines.push({ id: i, job: null, finishTime: null });
+      machines.push({ id: i, job: null, finishTime: null, status: 'active' });
     }
     set({
       jobs: [],
@@ -181,10 +199,13 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     });
     console.log(`currentMachines after completion check (jobs): ${currentMachines.map(m => m.job ? m.job.id : 'null')}`);
 
+    // Remove machines marked for removal that are now idle
+    currentMachines = currentMachines.filter(machine => !(machine.status === 'removing' && machine.job === null));
+
     // Assign jobs to free machines
     console.log(`currentJobs.length before assignment: ${currentJobs.length}`);
     currentMachines = currentMachines.map(machine => {
-        if (!machine.job && currentJobs.length > 0) {
+        if (machine.status === 'active' && !machine.job && currentJobs.length > 0) {
             const job = currentJobs.shift()!; // Take job from mutable queue
             const jobWithStartTime = { ...job, startedProcessingTime: newNow }; // Use newNow
             console.log(`Assigning Job ${job.id} to machine ${machine.id}.`);
