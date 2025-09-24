@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useSimulationStore } from "@/lib/simulation"
 import { Slider, Button, Typography, Box } from "@mui/material"
 
@@ -9,11 +10,22 @@ export function Controls() {
     setAvgJobTime,
     numMachines,
     setNumMachines,
+    timeScale,
+    setTimeScale,
     start,
     stop,
     reset,
     isRunning,
   } = useSimulationStore()
+
+  const [sliderValue, setSliderValue] = useState(0);
+
+  const handleTimeScaleChange = (_: Event, newValue: number | number[]) => {
+    const s = newValue as number;
+    setSliderValue(s);
+    const newTimeScale = Math.pow(10, s / 50);
+    setTimeScale(newTimeScale);
+  };
 
   return (
     <Box sx={{ p: 2 }}>
@@ -47,6 +59,17 @@ export function Controls() {
           onChange={(_, value) => setNumMachines(value as number)}
           min={1}
           max={50}
+          step={1}
+          valueLabelDisplay="auto"
+        />
+      </Box>
+      <Box sx={{ mt: 3 }}>
+        <Typography gutterBottom>Time Scale: {timeScale.toFixed(2)}x</Typography>
+        <Slider
+          value={sliderValue}
+          onChange={handleTimeScaleChange}
+          min={-100}
+          max={100}
           step={1}
           valueLabelDisplay="auto"
         />

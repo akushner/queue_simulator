@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { Text } from "@react-three/drei"
 import { useSimulationStore } from "@/lib/simulation"
@@ -7,12 +7,12 @@ import { Job, Machine } from "@/lib/types"
 function JobCube({ job, position, scale = 1 }: { job: Job, position?: [number, number, number], scale?: number }) {
   return (
     <mesh position={position} scale={[scale, scale, scale]}>
-      <boxGeometry args={[0.8, 0.8, 0.8]} />
+      <boxGeometry args={[0.5, 0.5, 0.5]} />
       <meshStandardMaterial color="lightblue" />
       <Text
         position={[0, 0, 0.4]}
-        fontSize={0.3}
-        color="black"
+        fontSize={0.2}
+        color="red"
         anchorX="center"
         anchorY="middle"
       >
@@ -88,11 +88,19 @@ function QueueDisplay() {
 }
 
 function Scene() {
-  const tick = useSimulationStore((state) => state.tick);
-  const machines = useSimulationStore((state) => state.machines);
+  const { tick, machines, timeScale } = useSimulationStore(state => ({
+    tick: state.tick,
+    machines: state.machines,
+    timeScale: state.timeScale,
+  }));
+  const timeAccumulator = useRef(0);
 
-  useFrame(() => {
-    tick();
+  useFrame((state, delta) => {
+    timeAccumulator.current += delta * timeScale;
+    while (timeAccumulator.current >= 1) {
+      tick();
+      timeAccumulator.current -= 1;
+    }
   });
 
   return (
