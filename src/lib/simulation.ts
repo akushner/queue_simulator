@@ -23,6 +23,7 @@ interface SimulationState {
   maxQueueDisplaySize: number;
   queueSizeHistory: number[];
   utilizationHistory: number[];
+  neededMachinesHistory: number[];
   totalJobsCompleted: number;
 
   // Derived State (Getters)
@@ -173,6 +174,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   maxQueueDisplaySize: INITIAL_MAX_QUEUE_DISPLAY_SIZE,
   queueSizeHistory: [],
   utilizationHistory: [],
+  neededMachinesHistory: [],
 
   // Derived State (Getters)
   get runningJobs() {
@@ -207,6 +209,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       maxQueueDisplaySize: INITIAL_MAX_QUEUE_DISPLAY_SIZE,
       queueSizeHistory: [],
       utilizationHistory: [],
+      neededMachinesHistory: [],
     });
   },
   tick: () => {
@@ -231,6 +234,19 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
 
     const utilization = state.numMachines > 0 ? (machinesAfterAssignment.filter(m => m.job).length / state.numMachines) * 100 : 0;
 
+    let totalRemainingProcessingTime = 0;
+    newJobs.forEach(job => {
+      totalRemainingProcessingTime += job.processingTime;
+    });
+    machinesAfterAssignment.forEach(machine => {
+      if (machine.job && machine.finishTime) {
+        totalRemainingProcessingTime += (machine.finishTime - newNow);
+      }
+    });
+
+    const estimatedTime = state.numMachines > 0 ? totalRemainingProcessingTime / state.numMachines : 0;
+    const neededMachines = estimatedTime > 60 ? Math.ceil(totalRemainingProcessingTime / 60) - state.numMachines : 0;
+
     // --- Update State ---
     set(prevState => ({
       time: newNow,
@@ -242,6 +258,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       totalQueueTime: prevState.totalQueueTime + totalQueueTimeUpdate,
       queueSizeHistory: [...prevState.queueSizeHistory.slice(-(QUEUE_HISTORY_LENGTH - 1)), newJobs.length],
       utilizationHistory: [...prevState.utilizationHistory, utilization],
+      neededMachinesHistory: [...prevState.neededMachinesHistory, neededMachines > 0 ? neededMachines : 0],
     }));
 
     get().updateMaxQueueDisplaySize();

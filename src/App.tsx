@@ -3,6 +3,7 @@ import { Simulation } from "@/components/Simulation";
 import { Dashboard } from "@/components/Dashboard";
 import { QueueMeter } from "@/components/QueueMeter"; // Import QueueMeter
 import { UtilizationGraph } from "@/components/UtilizationGraph";
+import { NeededMachinesGraph } from "@/components/NeededMachinesGraph";
 import { Box, Typography } from '@mui/material';
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
             </Box>
           </Box>
           <UtilizationGraph />
+          <NeededMachinesGraph />
         </Box>
       </Box>
     </Box>
