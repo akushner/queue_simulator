@@ -22,6 +22,7 @@ interface SimulationState {
   totalServiceTime: number;
   maxQueueDisplaySize: number;
   queueSizeHistory: number[];
+  utilizationHistory: number[];
   totalJobsCompleted: number;
 
   // Derived State (Getters)
@@ -171,6 +172,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   totalQueueTime: 0,
   maxQueueDisplaySize: INITIAL_MAX_QUEUE_DISPLAY_SIZE,
   queueSizeHistory: [],
+  utilizationHistory: [],
 
   // Derived State (Getters)
   get runningJobs() {
@@ -183,24 +185,6 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   avgQueueTime: () => {
     const { totalQueueTime, totalJobsCompleted } = get();
     return totalJobsCompleted > 0 ? totalQueueTime / totalJobsCompleted : 0;
-  },
-  get estimatedQueueEmptyTime() {
-    const state = get();
-    let totalRemainingProcessingTime = 0;
-
-    // Jobs in queue
-    state.jobs.forEach(job => {
-      totalRemainingProcessingTime += job.processingTime;
-    });
-
-    // Jobs currently on machines (remaining time)
-    state.machines.forEach(machine => {
-      if (machine.job && machine.finishTime) {
-        totalRemainingProcessingTime += (machine.finishTime - state.time);
-      }
-    });
-
-    return state.numMachines > 0 ? totalRemainingProcessingTime / state.numMachines : 0;
   },
 
   // Actions
@@ -222,6 +206,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       totalQueueTime: 0,
       maxQueueDisplaySize: INITIAL_MAX_QUEUE_DISPLAY_SIZE,
       queueSizeHistory: [],
+      utilizationHistory: [],
     });
   },
   tick: () => {
@@ -244,6 +229,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     // 4. Add new jobs to the queue
     const newJobs = addNewJobs(remainingJobs, newNow, state.jobArrivalRate, state.avgJobTime);
 
+    const utilization = state.numMachines > 0 ? (machinesAfterAssignment.filter(m => m.job).length / state.numMachines) * 100 : 0;
+
     // --- Update State ---
     set(prevState => ({
       time: newNow,
@@ -254,6 +241,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       totalServiceTime: prevState.totalServiceTime + totalServiceTimeUpdate,
       totalQueueTime: prevState.totalQueueTime + totalQueueTimeUpdate,
       queueSizeHistory: [...prevState.queueSizeHistory.slice(-(QUEUE_HISTORY_LENGTH - 1)), newJobs.length],
+      utilizationHistory: [...prevState.utilizationHistory, utilization],
     }));
 
     get().updateMaxQueueDisplaySize();

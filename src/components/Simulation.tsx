@@ -58,23 +58,43 @@ function MachineLane({ machine, index, numLanes }: { machine: Machine, index: nu
 
 function QueueDisplay() {
   const jobs = useSimulationStore((state) => state.jobs);
-  const estimatedQueueEmptyTime = useSimulationStore((state) => state.estimatedQueueEmptyTime);
+  const machines = useSimulationStore((state) => state.machines);
+  const time = useSimulationStore((state) => state.time);
+  const numMachines = useSimulationStore((state) => state.numMachines);
+
+  const estimatedQueueEmptyTime = (() => {
+    let totalRemainingProcessingTime = 0;
+
+    // Jobs in queue
+    jobs.forEach(job => {
+      totalRemainingProcessingTime += job.processingTime;
+    });
+
+    // Jobs currently on machines (remaining time)
+    machines.forEach(machine => {
+      if (machine.job && machine.finishTime) {
+        totalRemainingProcessingTime += (machine.finishTime - time);
+      }
+    });
+
+    return numMachines > 0 ? totalRemainingProcessingTime / numMachines : 0;
+  })();
 
   return (
     <group position={[-8, 0, 0]}> {/* Position the queue to the left */}
       <Text
-        position={[0, jobs.length * 0.7 / 2 + 1, 0]} // Position above the jobs
+        position={[0, jobs.length * 0.7 / 2 + 2, 0]} // Position above the jobs
         fontSize={0.4}
-        color="black"
+        color="white"
         anchorX="center"
         anchorY="bottom"
       >
         Jobs in Queue: {jobs.length}
       </Text>
       <Text
-        position={[0, jobs.length * 0.7 / 2 + 0.5, 0]} // Position above the jobs
+        position={[0, jobs.length * 0.7 / 2 + 1.5, 0]} // Position above the jobs
         fontSize={0.3}
-        color="black"
+        color="white"
         anchorX="center"
         anchorY="bottom"
       >
@@ -88,11 +108,9 @@ function QueueDisplay() {
 }
 
 function Scene() {
-  const { tick, machines, timeScale } = useSimulationStore(state => ({
-    tick: state.tick,
-    machines: state.machines,
-    timeScale: state.timeScale,
-  }));
+  const tick = useSimulationStore((state) => state.tick);
+  const machines = useSimulationStore((state) => state.machines);
+  const timeScale = useSimulationStore((state) => state.timeScale);
   const timeAccumulator = useRef(0);
 
   useFrame((state, delta) => {

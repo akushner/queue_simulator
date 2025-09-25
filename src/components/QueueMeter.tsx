@@ -3,8 +3,12 @@ import { Box, Typography, Paper } from '@mui/material';
 import { useSimulationStore } from '@/lib/simulation';
 
 export function QueueMeter() {
-  const jobsInQueue = useSimulationStore((state) => state.jobs.length);
+  const jobs = useSimulationStore((state) => state.jobs);
   const maxQueueDisplaySize = useSimulationStore((state) => state.maxQueueDisplaySize);
+
+  const jobsInQueue = jobs.length;
+  const oldestJobId = jobsInQueue > 0 ? jobs[0].id : null;
+  const newestJobId = jobsInQueue > 0 ? jobs[jobsInQueue - 1].id : null;
 
   // Calculate height percentage for the meter bar
   const meterHeightPercentage = Math.min(jobsInQueue / maxQueueDisplaySize, 1) * 100;
@@ -34,7 +38,19 @@ export function QueueMeter() {
         bgcolor: 'primary.main',
         borderRadius: 1,
         transition: 'height 0.2s ease-out',
-      }} />
+        position: 'relative', // Needed for positioning children
+      }} >
+        {jobsInQueue > 0 && (
+          <>
+            <Typography variant="caption" sx={{ position: 'absolute', top: 2, width: '100%', textAlign: 'center', color: 'white' }}>
+              {newestJobId}
+            </Typography>
+            <Typography variant="caption" sx={{ position: 'absolute', bottom: 2, width: '100%', textAlign: 'center', color: 'white' }}>
+              {oldestJobId}
+            </Typography>
+          </>
+        )}
+      </Box>
       {/* Vertical Axis Labels */}
       {axisLabels.map((value) => (
         <Typography
