@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSimulationStore } from "@/lib/simulation"
-import { Slider, Button, Typography, Box } from "@mui/material"
+import { Slider, Button, Typography, Box, FormControl, InputLabel, Select, MenuItem } from "@mui/material"
 
 export function Controls() {
   const {
@@ -12,6 +12,8 @@ export function Controls() {
     setNumMachines,
     timeScale,
     setTimeScale,
+    visualizationMode,
+    setVisualizationMode,
     start,
     stop,
     reset,
@@ -73,6 +75,19 @@ export function Controls() {
           step={1}
           valueLabelDisplay="auto"
         />
+      </Box>
+      <Box sx={{ mt: 3 }}>
+        <FormControl fullWidth>
+          <InputLabel>Visualization</InputLabel>
+          <Select
+            value={visualizationMode}
+            label="Visualization"
+            onChange={(e) => setVisualizationMode(e.target.value as 'lanes' | 'grid')}
+          >
+            <MenuItem value={'grid'}>Machine Grid</MenuItem>
+            <MenuItem value={'lanes'}>Machine Lanes</MenuItem>
+          </Select>
+        </FormControl>
       </Box>
       <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>
         <Button variant="contained" onClick={start} disabled={isRunning}>Start</Button>

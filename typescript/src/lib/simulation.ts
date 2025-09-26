@@ -11,6 +11,8 @@ interface SimulationState {
   setNumMachines: (num: number) => void;
   timeScale: number;
   setTimeScale: (scale: number) => void;
+  visualizationMode: 'lanes' | 'grid';
+  setVisualizationMode: (mode: 'lanes' | 'grid') => void;
 
   // State
   jobs: Job[];
@@ -30,7 +32,6 @@ interface SimulationState {
   runningJobs: number;
   avgServiceTime: () => number;
   avgQueueTime: () => number;
-  estimatedQueueEmptyTime: number;
 
   // Actions
   start: () => void;
@@ -143,14 +144,14 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
 
     if (num > currentNumMachines) {
       // Add machines
-      const newMachines = [...currentMachines];
+      const newMachines: Machine[] = [...currentMachines];
       for (let i = currentNumMachines; i < num; i++) {
         newMachines.push({ id: i, job: null, finishTime: null, status: 'active' });
       }
       set({ machines: newMachines, numMachines: num });
     } else if (num < currentNumMachines) {
       // Mark machines for removal
-      const newMachines = currentMachines.map((machine, i) => {
+      const newMachines: Machine[] = currentMachines.map((machine, i) => {
         if (i >= num) {
           return { ...machine, status: 'removing' };
         }
@@ -161,6 +162,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   },
   timeScale: 1,
   setTimeScale: (scale) => set({ timeScale: scale }),
+  visualizationMode: 'grid',
+  setVisualizationMode: (mode) => set({ visualizationMode: mode }),
 
   // State
   jobs: [],

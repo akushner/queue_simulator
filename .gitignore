@@ -1,6 +1,7 @@
 # Logs
 logs
 *.log
+sever.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -102,3 +103,6 @@ typings/
 
 # Server log
 server.log
+
+# Python virtual environment
+venv/
